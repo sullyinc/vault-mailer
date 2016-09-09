@@ -18,6 +18,8 @@ To create a new template:
 import datetime
 import json
 import logging
+import os
+import sys
 
 import sqlalchemy
 import sqlalchemy.exc
@@ -48,12 +50,20 @@ def connect_to_database(url):
 
 def main():
     logging.root.setLevel(logging.INFO)
-    connect_to_database('postgres:///mitro')
+
+    database_url = os.getenv('DATABASE_URL', 'postgres:///mitro')
+    connect_to_database(database_url)
     extra_args = tornado.options.parse_command_line()
 
-    # Verify that mandrill is configured
+    sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+
+    # Verify that sendgrid is configured
     if tornado.options.options.enable_email:
-        assert len(tornado.options.options.mandrill_api_key) > 0
+        try:
+            assert len(sendgrid_api_key) > 0
+        except:
+            logging.error('Error: email enabled but sendgrid_api_key not found')
+            sys.exit(-1)
 
     # Datadog listens for statsd requests on port 8125
     statsd_client = statsd.StatsdClient('localhost', 8125, 'emailer')

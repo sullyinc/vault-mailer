@@ -35,22 +35,20 @@ def queue_test_mandrill_message(db, email_type, template_name, template_params,
 
 class InviteTest(unittest.TestCase):
     def test_simple(self):
-        message = email_queue.generate_invite(
+        message = email_queue.generate_invite_mail(
             u'h\u00e9llo Name', 'from@example.com', 'to@example.com', u'H\u00e9llo service', None)
 
-        self.assertTrue(u'H\u00e9' in message['Subject'])
-        self.assertEquals('from@example.com', message['Reply-To'])
-        self.assertEquals('to@example.com', message['To'])
-        self.assertTrue('charset="utf-8"' in message.get_payload()[0]['Content-Type'].lower())
-        self.assertTrue('charset="utf-8"' in message.get_payload()[1]['Content-Type'].lower())
-        self.assertTrue(u'H\u00e9' in message.get_payload()[0].get_payload(decode=True).decode('utf-8'))
+        self.assertTrue(u'H\u00e9' in message.subject)
+        self.assertEquals('from@example.com', message.from_email.get()['email'])
+        self.assertEquals('to@example.com', message.personalizations[0].tos[0]['email'])
+        self.assertTrue(u'H\u00e9' in message.contents[1].get()['value'].decode('utf-8'))
 
     def test_with_token(self):
-        message = email_queue.generate_invite(u'h\u00e9llo Name', 'from@example.com', 'to@example.com',
+        message = email_queue.generate_invite_mail(u'h\u00e9llo Name', 'from@example.com', 'to@example.com',
             u'H\u00e9llo service', '99token99')
-        text_content = message.get_payload()[0].get_payload(decode=True).decode('utf-8')
+        text_content = message.contents[1].get()['value'].decode('utf-8')
         self.assertTrue('/99token99' in text_content)
-        html_content = message.get_payload()[1].get_payload(decode=True).decode('utf-8')
+        html_content = message.contents[1].get()['value'].decode('utf-8')
         self.assertTrue('/99token99' in html_content)
 
 
@@ -61,13 +59,13 @@ class InviteNewUserTest(unittest.TestCase):
         email_queue.send_new_user_invite('from@example.com', to_address, password)
         message = email_queue._last_message
 
-        self.assertEquals('from@example.com', message['Reply-To'])
-        self.assertEquals(to_address, message['To'])
-        self.assertTrue('charset="utf-8"' in message.get_payload()[0]['Content-Type'].lower())
-        self.assertTrue('charset="utf-8"' in message.get_payload()[1]['Content-Type'].lower())
+        self.assertEquals('from@example.com', message.reply_to.get()['email'])
+        self.assertEquals(to_address, message.personalizations[0].tos[0]['email'])
+        # self.assertTrue('charset="utf-8"' in message.get_payload()[0]['Content-Type'].lower())
+        # self.assertTrue('charset="utf-8"' in message.get_payload()[1]['Content-Type'].lower())
 
         # Verify that links actually go to the right URL (escaping bug ruined this once)
-        html = message.get_payload()[1].get_payload(decode=True).decode('utf-8')
+        html = message.contents[1].get()['value'].decode('utf-8')
         count = 0
         HREF_RE = re.compile('href="([^"]+)">')
         for match in HREF_RE.finditer(html):
@@ -81,7 +79,7 @@ class InviteNewUserTest(unittest.TestCase):
         self.assertTrue(count > 0)
 
         # Make sure text links are *not* escaped
-        text = message.get_payload()[0].get_payload(decode=True).decode('utf-8')
+        text = message.contents[0].get()['value'].decode('utf-8')
         count = 0
         TEXT_RE = re.compile('(https://www.mitro.co/[^\s]+)')
         for match in TEXT_RE.finditer(text):
@@ -101,10 +99,10 @@ class VerifyDeviceTest(unittest.TestCase):
         email_queue.send_device_verification(to_address, token, signature)
         message = email_queue._last_message
 
-        self.assertEquals(to_address, message['To'])
+        self.assertEquals(to_address, message.personalizations[0].tos[0]['email'])
 
         # Verify that links go to the right URL
-        html = message.get_payload()[1].get_payload(decode=True).decode('utf-8')
+        html = message.contents[1].get()['value']
         self.assertTrue('https://www.mitro.co/mitro-core/user/VerifyDevice?' in html)
 
 
@@ -115,10 +113,10 @@ class SendAddressVerificationTest(unittest.TestCase):
         email_queue.send_address_verification(to_address, code)
         message = email_queue._last_message
 
-        self.assertEquals(to_address, message['To'])
+        self.assertEquals(to_address, message.personalizations[0].tos[0]['email'])
 
         # Verify that links actually go to the right URL (escaping bug ruined this once)
-        html = message.get_payload()[1].get_payload(decode=True).decode('utf-8')
+        html = message.contents[1].get()['value']
         count = 0
         HREF_RE = re.compile('href="([^"]+)">')
         for match in HREF_RE.finditer(html):

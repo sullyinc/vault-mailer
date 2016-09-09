@@ -20,3 +20,7 @@ psycopg2
 # requests needed for mandrill
 requests
 mandrill
+
+# For Sendgrid
+sendgrid
+python_http_client

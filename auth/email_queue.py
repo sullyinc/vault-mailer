@@ -4,22 +4,64 @@ import datetime
 import email.message
 import json
 import logging
+import os
 import re
 import time
 import urllib
 
-import mandrill
+import sendgrid
+from sendgrid.helpers.mail import Email, Content, Substitution, Mail, Personalization
 from tornado import options
 from tornado import template
 from tornado import escape
 
-
 from common import sendmail
 
+# try:
+#     # Python 3
+#     import urllib as urllib
+# except ImportError:
+# Python 2
+import urllib2
+
+
 options.define('enable_email', False, help='Send notification emails')
-options.define('mandrill_api_key', '', help='API key for mandrill')
 
 _POLL_SLEEP_SECONDS = 5
+_DEFAULT_CONTENT_TEXT = 'Please use an email client that displays HTML, such as http://www.gmail.com'
+
+def create_sendgrid_client():
+    return sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
+
+
+def make_sendgrid_mail(html_string, subject, to_string, from_string, 
+                       text_string=None):
+    if text_string is None:
+        text_string = _DEFAULT_CONTENT_TEXT
+    mail = Mail()
+
+    # SendGrid: minimum required from_email, subject, to_email, and content
+    mail.set_from(Email(from_string))
+    personalization = Personalization()
+    personalization.add_to(Email(to_string))
+    mail.add_personalization(personalization)
+    mail.set_subject(subject)
+     
+    content_text = Content("text/plain", text_string)
+    content_html = Content("text/html", html_string)
+    mail.add_content(content_text)
+    mail.add_content(content_html)
+
+    return mail
+
+def send_sendgrid_mail(mail):
+    sendgrid_client = create_sendgrid_client()
+
+    try:
+        response = sendgrid_client.client.mail.send.post(request_body=mail.get())
+    except urllib2.HTTPError as e:
+        print e.read()
+
 
 EMAIL_BLACKLIST = {'sgsprob@arcode.com',
     'felipe.mejia@alolaconnection.com', 'tyronedubose@gmail.com',
@@ -66,7 +108,7 @@ def _drop_template_cache():
     _TEMPLATE_LOADER = None
 
 
-def generate_invite(sender_name, sender_email, recipient, service_name, invite_token):
+def generate_invite_mail(sender_name, sender_email, recipient, service_name, invite_token):
     assert sender_email != recipient
 
     subject = '%s has given you access to %s' % (sender_name, service_name)
@@ -85,28 +127,37 @@ def generate_invite(sender_name, sender_email, recipient, service_name, invite_t
     html = _generate_template('email_invite.html', variables, html_escape=True)
     text = _generate_template('email_invite.txt', variables, html_escape=False)
 
-    message = sendmail.make_email_message(html, subject, recipient, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient, sender_email, text)
     # Dropbox sets reply-to to the "sharerer"
-    message['Reply-To'] = sender_email.encode('us-ascii')
-    return message
+    mail.set_reply_to(Email(sender_email))
+    return mail
 
 
 _fake_send_count = 0
 _last_message = None
-def _send(message):
+def _send(mail):
+    """
+    Sends a SendGrid mail object.
+
+    Args:
+        mail: Sendgrid Mail object.
+    """
     if options.options.enable_email:
-        sendmail.send_message_via_ses(message)
+        send_sendgrid_mail(mail)
     else:
-        logging.info('email disabled; not sending to %s', message['To'])
+        if (mail.personalizations and mail.personalizations[0].tos):
+            logging.info('email disabled; not sending mail to %s', mail.personalizations[0].tos[0])
+        else:
+            logging.info('email disabled; not sending mail %s', mail)
         global _fake_send_count
         global _last_message
         _fake_send_count += 1
-        _last_message = message
+        _last_message = mail
 
 
 def send_invite(sender_name, sender_email, recipient, service_name, invite_token):
-    message = generate_invite(sender_name, sender_email, recipient, service_name, invite_token)
-    _send(message)
+    mail = generate_invite_mail(sender_name, sender_email, recipient, service_name, invite_token)
+    _send(mail)
 
 
 _SERVICE_RECIPIENT = 'eng@lectorius.com'
@@ -170,15 +221,47 @@ def generate_new_user_invite(sender_email, recipient_email, temp_password):
     html = _generate_template('new_user_invite.html', variables, html_escape=True)
     text = _generate_template('new_user_invite.txt', variables, html_escape=False)
 
-    return sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
+    return make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
 
 
 def send_new_user_invite(sender_email, recipient_email, temp_password):
-    message = generate_new_user_invite(sender_email, recipient_email, temp_password)
+    mail = generate_new_user_invite(sender_email, recipient_email, temp_password)
     # Dropbox sets reply-to to the "sharerer"
-    message['Reply-To'] = sender_email.encode('us-ascii')
-    _send(message)
+    mail.set_reply_to(Email(sender_email))
+    _send(mail)
 
+
+def send_address_verification_sendgrid(recipient_email, verification_code):
+
+    args = {
+        'user': recipient_email,
+        'code': verification_code,
+    }
+    verification_link = 'https://www.mitro.co/mitro-core/user/VerifyAccount?' + \
+        urllib.urlencode(args)
+
+    # variables = {
+    #     'verification_link': verification_link
+    # }
+    # html = _generate_template('address_verification.html', variables, html_escape=True)
+    # text = _generate_template('address_verification.txt', variables, html_escape=False)
+    # message = sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
+
+    from_email = Email("test@vaulapp.xyz")
+    subject = "I'm replacing the subject tag"
+    to_email = Email(recipient_email)
+    content = Content("text/html", "I'm replacing the <strong>body tag</strong>")
+    mail = Mail(from_email, subject, to_email, content)
+    mail.personalizations[0].add_substitution(Substitution("-verification_link-", verification_link))
+    mail.set_template_id("64799c09-d5fe-486e-b5ad-067f82ca51b9")
+
+    sendgrid_client = create_sendgrid_client()
+
+    if ok_to_send_email(recipient_email):
+        try:
+            response = sendgrid_client.client.mail.send.post(request_body=mail.get())
+        except urllib2.HTTPError as e:
+            print e.read()
 
 def send_address_verification(recipient_email, verification_code):
     subject = 'Verify your Mitro account'
@@ -195,9 +278,10 @@ def send_address_verification(recipient_email, verification_code):
     }
     html = _generate_template('address_verification.html', variables, html_escape=True)
     text = _generate_template('address_verification.txt', variables, html_escape=False)
-    message = sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
     if ok_to_send_email(recipient_email):
-        _send(message)
+        _send(mail)
+
 
 
 # HTML5 regexp also used in JS
@@ -221,13 +305,13 @@ def send_issue_reported(user_email_address, url, issue_type, description, issue_
     }
 
     text = _generate_template('new_issue.txt', variables, html_escape=False)
-    message = sendmail.make_email_message('', subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail('', subject, recipient_email, _FROM_ADDR, text)
     # The user supplied a "valid" email address: set the reply-to header
     # If we set it for invalid strings, the server rejects the message
     if _is_valid_email(user_email_address) > 0:
-        message['Reply-To'] = user_email_address
+        mail.set_reply_to(Email(user_email_address))
 
-    _send(message)
+    _send(mail)
 
 def send_device_verification(recipient_email, token, token_signature):
     subject = 'Mitro: Verify your account for a new device'
@@ -245,10 +329,10 @@ def send_device_verification(recipient_email, token, token_signature):
     }
     html = _generate_template('device_verification.html', variables, html_escape=True)
     text = _generate_template('device_verification.txt', variables, html_escape=False)
-    message = sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
 
     if ok_to_send_email(recipient_email):
-        _send(message)
+        _send(mail)
 
 
 def generate_share_notification(sender_name, sender_email, recipient_name, recipient_email, secret_title, secret_url):
@@ -275,14 +359,43 @@ def generate_share_notification(sender_name, sender_email, recipient_name, recip
     text = _generate_template('share_notification.txt', params, html_escape=False)
     text = ''
 
-    message = sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
 
-    return message
+    return mail
 
 
 def send_share_notification(sender_name, sender_email, recipient_name, recipient_email, secret_title, secret_url):
     message = generate_share_notification(sender_name, sender_email, recipient_name, recipient_email, secret_title, secret_url)
     _send(message)
+
+
+def send_sendgrid_template(template_name, template_params, subject, sender_name, sender_email, recipient_name, recipient_email):
+    '''Send a message via the SendGrid API.'''
+    if template_name.strip() == 'share-to-recipient-web':
+       logging.info('ignoring share to recipient message')
+       return
+
+    if template_name not in _TEMPLATE_NAME_TO_TEMPLATE_ID:
+        logging.ing('template id not found for template name ' + template_name + ': ignoring message')
+        return
+    template_id = _TEMPLATE_NAME_TO_TEMPLATE_ID[template_name]
+
+    mail = Mail()
+
+    personalization = Personalization()
+    personalization.add_to(Email(recipient_email))
+    mail.add_personalization(personalization)
+
+    if sender_email:
+        mail.set_from(Email(sender_email))
+
+    if subject:
+        mail.set_subject(subject)
+
+    mail.set_template_id(template_id)
+
+    send_sendgrid_mail(mail)
+
 
 def send_mandrill_message(template_name, template_params, subject, sender_name, sender_email, recipient_name, recipient_email):
     '''Send a message via the Mandrill API.'''
@@ -327,6 +440,10 @@ _TYPE_SHARE_NOTIFICATION = 'share_notification';
 _VALID_TYPES = set((_TYPE_INVITATION, _TYPE_SERVICE, _TYPE_CREATE, _TYPE_NEW_USER_INVITE,
     _TYPE_ADDRESS_VERIFICATION, _TYPE_LOGIN_ON_NEW_DEVICE))
 
+# Map of db template names to SendGrid template IDs
+_TEMPLATE_NAME_TO_TEMPLATE_ID = {
+    'onboard-first-secret': '64799c09-d5fe-486e-b5ad-067f82ca51b9'
+}
 
 def _queue(session, queue_class, type_string, args,
            template_name, template_params):
@@ -383,7 +500,7 @@ def _loop_once(session, queue_class, statsd_client):
     success = False
     try:
         if item.template_name:
-            send_mandrill_message(item.template_name,
+            send_sendgrid_template(item.template_name,
                 item.get_template_params(), *arguments)
             logging.info('sent message with mandrill template %s',
                          item.template_name)
