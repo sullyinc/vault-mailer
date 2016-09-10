@@ -131,6 +131,22 @@ class SendAddressVerificationTest(unittest.TestCase):
         self.assertEquals(2, count)
 
 
+class SendOnboardFirstSecretTest(unittest.TestCase):
+    def test_simple(self):
+        template_name = 'onboard-first-secret'
+        template_params = {'this_is_ignored': True}
+        subject = None
+        sender_name = None
+        sender_email = None
+        recipient_name = None
+        recipient_email = 'to@exmaple.com'
+
+        email_queue.send_sendgrid_template(template_name, template_params, subject, sender_name, sender_email, recipient_name, recipient_email)
+        message = email_queue._last_message
+
+        self.assertEquals(recipient_email, message.personalizations[0].tos[0]['email'])
+        self.assertEquals('Mitro <do-not-reply@mitro.co>', message.from_email.get()['email'])
+
 # TODO: Re-enable once templates are added
 # class SendShareNotificationTest(unittest.TestCase):
 #     def test_simple(self):

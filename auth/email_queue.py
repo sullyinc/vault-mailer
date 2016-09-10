@@ -386,15 +386,16 @@ def send_sendgrid_template(template_name, template_params, subject, sender_name,
     personalization.add_to(Email(recipient_email))
     mail.add_personalization(personalization)
 
-    if sender_email:
-        mail.set_from(Email(sender_email))
+    if sender_email is None:
+        sender_email = _FROM_ADDR
+    mail.set_from(Email(sender_email))
 
     if subject:
         mail.set_subject(subject)
 
     mail.set_template_id(template_id)
 
-    send_sendgrid_mail(mail)
+    _send(mail)
 
 
 def send_mandrill_message(template_name, template_params, subject, sender_name, sender_email, recipient_name, recipient_email):
@@ -502,7 +503,7 @@ def _loop_once(session, queue_class, statsd_client):
         if item.template_name:
             send_sendgrid_template(item.template_name,
                 item.get_template_params(), *arguments)
-            logging.info('sent message with mandrill template %s',
+            logging.info('sent message with sendgrid template %s',
                          item.template_name)
         elif item.type_string == _TYPE_INVITATION:
             send_invite(*arguments)
