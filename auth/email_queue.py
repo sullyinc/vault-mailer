@@ -30,6 +30,23 @@ options.define('enable_email', False, help='Send notification emails')
 _POLL_SLEEP_SECONDS = 5
 _DEFAULT_CONTENT_TEXT = 'Please use an email client that displays HTML, such as http://www.gmail.com'
 
+_TYPE_INVITATION = 'user_invite'
+_TYPE_SERVICE = 'custom_service'
+_TYPE_CREATE = 'create_account'
+_TYPE_NEW_USER_INVITE = 'new_user_invitation'
+_TYPE_ADDRESS_VERIFICATION = 'address_verification'
+_TYPE_LOGIN_ON_NEW_DEVICE = 'new_device_login'
+_TYPE_ISSUE_REPORTED = 'issue_reported'
+_TYPE_SHARE_NOTIFICATION = 'share_notification';
+_VALID_TYPES = set((_TYPE_INVITATION, _TYPE_SERVICE, _TYPE_CREATE, _TYPE_NEW_USER_INVITE,
+    _TYPE_ADDRESS_VERIFICATION, _TYPE_LOGIN_ON_NEW_DEVICE))
+
+# Map of db template names to SendGrid template IDs
+_TEMPLATE_NAME_TO_TEMPLATE_ID = {
+    'onboard-first-secret': '0be812f1-410e-45a3-900c-4d6a78292dc0'
+}
+
+
 def create_sendgrid_client():
     return sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
 
@@ -429,22 +446,6 @@ def send_mandrill_message(template_name, template_params, subject, sender_name, 
 
     return result
 
-
-_TYPE_INVITATION = 'user_invite'
-_TYPE_SERVICE = 'custom_service'
-_TYPE_CREATE = 'create_account'
-_TYPE_NEW_USER_INVITE = 'new_user_invitation'
-_TYPE_ADDRESS_VERIFICATION = 'address_verification'
-_TYPE_LOGIN_ON_NEW_DEVICE = 'new_device_login'
-_TYPE_ISSUE_REPORTED = 'issue_reported'
-_TYPE_SHARE_NOTIFICATION = 'share_notification';
-_VALID_TYPES = set((_TYPE_INVITATION, _TYPE_SERVICE, _TYPE_CREATE, _TYPE_NEW_USER_INVITE,
-    _TYPE_ADDRESS_VERIFICATION, _TYPE_LOGIN_ON_NEW_DEVICE))
-
-# Map of db template names to SendGrid template IDs
-_TEMPLATE_NAME_TO_TEMPLATE_ID = {
-    'onboard-first-secret': '64799c09-d5fe-486e-b5ad-067f82ca51b9'
-}
 
 def _queue(session, queue_class, type_string, args,
            template_name, template_params):
