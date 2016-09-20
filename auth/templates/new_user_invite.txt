@@ -1,6 +1,6 @@
 Hello,
 
-{{ sender_email }} has given you access to an account using Mitro, a brilliant solution for access control for teams. To access it, create a new account with the following information:
+{{ sender_email }} has given you access to an account using Vault, a brilliant solution for access control for teams. To access it, create a new account with the following information:
 
 
 Email address: {{ recipient_email }}
@@ -13,10 +13,10 @@ Create Account:
 
 Thanks,
 
-The Mitro Team
+The Vault Team
 
 
-What is Mitro?
+What is Vault?
 
-Mitro remembers all your passwords so you don't have to, and lets
+Vault remembers all your passwords so you don't have to, and lets
 you easily and securely share accounts with others.

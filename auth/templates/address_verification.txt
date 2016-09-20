@@ -1,15 +1,15 @@
 Hello,
 
-We want to verify that you created a new account on Mitro. If you did, please follow this link:
+We want to verify that you created a new account on Vault. If you did, please follow this link:
 
 {{ verification_link }}
 
 
 If you didn't create an account you can ignore this email. Thanks,
 
-The Mitro Team
+The Vault Team
 
 
-What is Mitro?
+What is Vault?
 
-Mitro remembers all your passwords so you don't have to, and lets you easily and securely share accounts with others.
+Vault remembers all your passwords so you don't have to, and lets you easily and securely share accounts with others.

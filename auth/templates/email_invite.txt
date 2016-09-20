@@ -6,9 +6,9 @@ Hello,
 
 Thanks,
 
-The Mitro Team
+The Vault Team
 
 
-What is Mitro?
+What is Vault?
 
-Mitro allows teams to easily and securely share accounts for cloud services. Our dashboard gives you powerful management tools to control who has access to all your services.
+Vault allows teams to easily and securely share accounts for cloud services. Our dashboard gives you powerful management tools to control who has access to all your services.

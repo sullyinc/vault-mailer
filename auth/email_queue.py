@@ -92,11 +92,11 @@ def ok_to_send_email(addr):
         return True
 
 # do-not-reply is typical: Asana, Dropbox (no-reply), and Trello (do-not-reply)
-_FROM_ADDR = 'Mitro <do-not-reply@mitro.co>'
+_FROM_ADDR = 'Vault <team@vaultapp.xyz>'
 _TEMPLATE_PATH = 'auth/templates'
 _TEMPLATE_LOADER = None
 _NO_ESCAPING_TEMPLATE_LOADER = None
-_EMAILS_TO_SEND_ISSUES_TO = 'issues@lectorius.com'
+_EMAILS_TO_SEND_ISSUES_TO = 'team@vaultapp.xyz'
 
 def _generate_template(name, variables, html_escape):
     '''Loads the template from name (with caching) and renders it using variables.
@@ -130,7 +130,7 @@ def generate_invite_mail(sender_name, sender_email, recipient, service_name, inv
 
     subject = '%s has given you access to %s' % (sender_name, service_name)
 
-    login_url = 'https://www.mitro.co/login/google'
+    login_url = 'https://www.vaultapp.xyz/login/google'
     if invite_token is not None:
         login_url += '/' + invite_token
 
@@ -177,7 +177,7 @@ def send_invite(sender_name, sender_email, recipient, service_name, invite_token
     _send(mail)
 
 
-_SERVICE_RECIPIENT = 'eng@lectorius.com'
+_SERVICE_RECIPIENT = 'team@vaultapp.xyz'
 def _send_eng_message(subject, content):
     message = email.message.Message()
     message['Subject'] = subject
@@ -225,7 +225,7 @@ def generate_new_user_invite(sender_email, recipient_email, temp_password):
         'u': recipient_email,
         'p': temp_password,
     }
-    login_url = 'https://www.mitro.co/install.html' + '#' + \
+    login_url = 'https://www.vaultapp.xyz/install.html' + '#' + \
         urllib.urlencode(args)
 
     variables = {
@@ -248,38 +248,6 @@ def send_new_user_invite(sender_email, recipient_email, temp_password):
     _send(mail)
 
 
-def send_address_verification_sendgrid(recipient_email, verification_code):
-
-    args = {
-        'user': recipient_email,
-        'code': verification_code,
-    }
-    verification_link = 'https://www.mitro.co/mitro-core/user/VerifyAccount?' + \
-        urllib.urlencode(args)
-
-    # variables = {
-    #     'verification_link': verification_link
-    # }
-    # html = _generate_template('address_verification.html', variables, html_escape=True)
-    # text = _generate_template('address_verification.txt', variables, html_escape=False)
-    # message = sendmail.make_email_message(html, subject, recipient_email, _FROM_ADDR, text)
-
-    from_email = Email("test@vaulapp.xyz")
-    subject = "I'm replacing the subject tag"
-    to_email = Email(recipient_email)
-    content = Content("text/html", "I'm replacing the <strong>body tag</strong>")
-    mail = Mail(from_email, subject, to_email, content)
-    mail.personalizations[0].add_substitution(Substitution("-verification_link-", verification_link))
-    mail.set_template_id("64799c09-d5fe-486e-b5ad-067f82ca51b9")
-
-    sendgrid_client = create_sendgrid_client()
-
-    if ok_to_send_email(recipient_email):
-        try:
-            response = sendgrid_client.client.mail.send.post(request_body=mail.get())
-        except urllib2.HTTPError as e:
-            print e.read()
-
 def send_address_verification(recipient_email, verification_code):
     subject = 'Verify your Mitro account'
 
@@ -287,7 +255,7 @@ def send_address_verification(recipient_email, verification_code):
         'user': recipient_email,
         'code': verification_code,
     }
-    verification_link = 'https://www.mitro.co/mitro-core/user/VerifyAccount?' + \
+    verification_link = 'https://www.vaultapp.xyz/mitro-core/user/VerifyAccount?' + \
         urllib.urlencode(args)
 
     variables = {
@@ -298,7 +266,6 @@ def send_address_verification(recipient_email, verification_code):
     mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
     if ok_to_send_email(recipient_email):
         _send(mail)
-
 
 
 # HTML5 regexp also used in JS
@@ -338,7 +305,7 @@ def send_device_verification(recipient_email, token, token_signature):
         'token': token,
         'token_signature': token_signature
     }
-    verification_link = 'https://www.mitro.co/mitro-core/user/VerifyDevice?' + \
+    verification_link = 'https://www.vaultapp.xyz/mitro-core/user/VerifyDevice?' + \
         urllib.urlencode(args)
 
     variables = {

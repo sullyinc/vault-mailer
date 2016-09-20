@@ -71,7 +71,7 @@ class InviteNewUserTest(unittest.TestCase):
         for match in HREF_RE.finditer(html):
             count += 1
             url, hash = match.group(1).split('#')
-            self.assertEquals('https://www.mitro.co/install.html', url)
+            self.assertEquals('https://www.vaultapp.xyz/install.html', url)
             quoted = urllib.urlencode({'u': to_address, 'p': password})
             # HTML unquote
             hash = hash.replace('&amp;', '&')
@@ -81,11 +81,11 @@ class InviteNewUserTest(unittest.TestCase):
         # Make sure text links are *not* escaped
         text = message.contents[0].get()['value'].decode('utf-8')
         count = 0
-        TEXT_RE = re.compile('(https://www.mitro.co/[^\s]+)')
+        TEXT_RE = re.compile('(https://www.vaultapp.xyz/[^\s]+)')
         for match in TEXT_RE.finditer(text):
             count += 1
             quoted = urllib.urlencode({'u': to_address, 'p': password})
-            self.assertEquals('https://www.mitro.co/install.html#' + quoted,
+            self.assertEquals('https://www.vaultapp.xyz/install.html#' + quoted,
                 match.group(1))
         self.assertEquals(1, count)
 
@@ -103,7 +103,7 @@ class VerifyDeviceTest(unittest.TestCase):
 
         # Verify that links go to the right URL
         html = message.contents[1].get()['value']
-        self.assertTrue('https://www.mitro.co/mitro-core/user/VerifyDevice?' in html)
+        self.assertTrue('https://www.vaultapp.xyz/mitro-core/user/VerifyDevice?' in html)
 
 
 class SendAddressVerificationTest(unittest.TestCase):
@@ -122,13 +122,13 @@ class SendAddressVerificationTest(unittest.TestCase):
         for match in HREF_RE.finditer(html):
             count += 1
             url, hash = match.group(1).split('?')
-            self.assertEquals('https://www.mitro.co/mitro-core/user/VerifyAccount', url)
+            self.assertEquals('https://www.vaultapp.xyz/mitro-core/user/VerifyAccount', url)
             quoted = urllib.urlencode({'user': to_address, 'code': code})
             # HTML unquote
             hash = hash.replace('&amp;', '&')
             self.assertEquals(quoted, hash)
 
-        self.assertEquals(2, count)
+        self.assertEquals(1, count)
 
 
 class SendOnboardFirstSecretTest(unittest.TestCase):
@@ -145,7 +145,7 @@ class SendOnboardFirstSecretTest(unittest.TestCase):
         message = email_queue._last_message
 
         self.assertEquals(recipient_email, message.personalizations[0].tos[0]['email'])
-        self.assertEquals('Mitro <do-not-reply@mitro.co>', message.from_email.get()['email'])
+        self.assertEquals('Vault <team@vaultapp.xyz>', message.from_email.get()['email'])
 
 # TODO: Re-enable once templates are added
 # class SendShareNotificationTest(unittest.TestCase):
