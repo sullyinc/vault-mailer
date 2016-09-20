@@ -255,7 +255,7 @@ def send_address_verification(recipient_email, verification_code):
         'user': recipient_email,
         'code': verification_code,
     }
-    verification_link = 'https://www.vaultapp.xyz/mitro-core/user/VerifyAccount?' + \
+    verification_link = 'https://api.vaultapp.xyz/mitro-core/user/VerifyAccount?' + \
         urllib.urlencode(args)
 
     variables = {
@@ -298,14 +298,14 @@ def send_issue_reported(user_email_address, url, issue_type, description, issue_
     _send(mail)
 
 def send_device_verification(recipient_email, token, token_signature):
-    subject = 'Mitro: Verify your account for a new device'
+    subject = 'Vault: Verify your account for a new device'
 
     args = {
         'user': recipient_email,
         'token': token,
         'token_signature': token_signature
     }
-    verification_link = 'https://www.vaultapp.xyz/mitro-core/user/VerifyDevice?' + \
+    verification_link = 'https://api.vaultapp.xyz/mitro-core/user/VerifyDevice?' + \
         urllib.urlencode(args)
 
     variables = {
