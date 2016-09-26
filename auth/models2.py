@@ -27,6 +27,7 @@ class EmailQueue(Base):
     type_string = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
     arg_string = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
     attempted_time = sqlalchemy.Column(sqlalchemy.DateTime)
+    sent_time = sqlalchemy.Column(sqlalchemy.DateTime)
     template_name = sqlalchemy.Column('mandrill_template_name', sqlalchemy.Text, nullable=True)
     template_params_string = sqlalchemy.Column(
             'mandrill_template_param_map_json',sqlalchemy.Text, nullable=True)
