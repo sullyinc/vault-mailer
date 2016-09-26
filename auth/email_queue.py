@@ -428,7 +428,7 @@ def _queue(session, queue_class, type_string, args,
 def poll_queue(session, queue_class):
     '''Returns a queued item, or None. Commits current transaction.'''
 
-    item = session.query(queue_class).filter_by(attempted_time=None).first()
+    item = session.query(queue_class).filter_by(attempted_time=None, sent_time=None).first()
     if item is None:
         session.commit()
         return None
@@ -448,7 +448,7 @@ def ack_queued_item(session, queue_class, item):
     '''Marks the queued item as processed by deleting it. Commits current transaction.'''
 
     assert session.query(queue_class).filter_by(id=item.id).count() == 1
-    session.delete(item)
+    item.sent_time = datetime.datetime.utcnow()
     session.commit()
 
 
