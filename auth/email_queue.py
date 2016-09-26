@@ -445,10 +445,14 @@ def poll_queue(session, queue_class):
 
 
 def ack_queued_item(session, queue_class, item):
-    '''Marks the queued item as processed by deleting it. Commits current transaction.'''
+    '''Marks the queued item as processed by updating sent_time. Commits current transaction.'''
 
     assert session.query(queue_class).filter_by(id=item.id).count() == 1
-    item.sent_time = datetime.datetime.utcnow()
+
+    # Reload the item as it was expunged earlier
+    email_item = session.query(queue_class).filter_by(id=item.id).first()
+    email_item.sent_time = datetime.datetime.utcnow()
+
     session.commit()
 
 
