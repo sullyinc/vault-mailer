@@ -24,3 +24,6 @@ mandrill
 # For Sendgrid
 sendgrid
 python_http_client
+
+# For db_maintenance
+tinys3
