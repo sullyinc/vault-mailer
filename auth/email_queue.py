@@ -249,7 +249,7 @@ def send_new_user_invite(sender_email, recipient_email, temp_password):
 
 
 def send_address_verification(recipient_email, verification_code):
-    subject = 'Verify your Mitro account'
+    subject = 'Verify your Vault account'
 
     args = {
         'user': recipient_email,
