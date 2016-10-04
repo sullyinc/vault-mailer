@@ -58,7 +58,7 @@ def make_sendgrid_mail(html_string, subject, to_string, from_email, from_name,
     mail = Mail()
 
     # SendGrid: minimum required from_email, subject, to_email, and content
-    mail.set_from(Email(from_string))
+    mail.set_from(Email(email=from_email, name=from_name))
     personalization = Personalization()
     personalization.add_to(Email(to_string))
     mail.add_personalization(personalization)
