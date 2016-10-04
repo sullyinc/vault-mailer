@@ -51,7 +51,7 @@ def create_sendgrid_client():
     return sendgrid.SendGridAPIClient(apikey=os.environ.get('SENDGRID_API_KEY'))
 
 
-def make_sendgrid_mail(html_string, subject, to_string, from_string, 
+def make_sendgrid_mail(html_string, subject, to_string, from_email, from_name, 
                        text_string=None):
     if text_string is None:
         text_string = _DEFAULT_CONTENT_TEXT
@@ -92,7 +92,8 @@ def ok_to_send_email(addr):
         return True
 
 # do-not-reply is typical: Asana, Dropbox (no-reply), and Trello (do-not-reply)
-_FROM_ADDR = 'Vault <team@vaultapp.xyz>'
+_FROM_ADDR = 'team@vaultapp.xyz'
+_FROM_NAME = 'Vault'
 _TEMPLATE_PATH = 'auth/templates'
 _TEMPLATE_LOADER = None
 _NO_ESCAPING_TEMPLATE_LOADER = None
@@ -144,7 +145,7 @@ def generate_invite_mail(sender_name, sender_email, recipient, service_name, inv
     html = _generate_template('email_invite.html', variables, html_escape=True)
     text = _generate_template('email_invite.txt', variables, html_escape=False)
 
-    mail = make_sendgrid_mail(html, subject, recipient, sender_email, text)
+    mail = make_sendgrid_mail(html, subject, recipient, sender_email, None, text)
     # Dropbox sets reply-to to the "sharerer"
     mail.set_reply_to(Email(sender_email))
     return mail
@@ -238,7 +239,7 @@ def generate_new_user_invite(sender_email, recipient_email, temp_password):
     html = _generate_template('new_user_invite.html', variables, html_escape=True)
     text = _generate_template('new_user_invite.txt', variables, html_escape=False)
 
-    return make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
+    return make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, _FROM_NAME, text)
 
 
 def send_new_user_invite(sender_email, recipient_email, temp_password):
@@ -263,7 +264,7 @@ def send_address_verification(recipient_email, verification_code):
     }
     html = _generate_template('address_verification.html', variables, html_escape=True)
     text = _generate_template('address_verification.txt', variables, html_escape=False)
-    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, _FROM_NAME, text)
     if ok_to_send_email(recipient_email):
         _send(mail)
 
@@ -277,7 +278,7 @@ def _is_valid_email(email):
     return _EMAIL_RE.match(email) is not None
 
 def send_issue_reported(user_email_address, url, issue_type, description, issue_id):
-    subject = 'Mitro issue report (id: %s url: %s)' % (issue_id, url)
+    subject = 'Vault issue report (id: %s url: %s)' % (issue_id, url)
     recipient_email = _EMAILS_TO_SEND_ISSUES_TO
     user_email_address = user_email_address.strip()
     variables = {
@@ -289,7 +290,7 @@ def send_issue_reported(user_email_address, url, issue_type, description, issue_
     }
 
     text = _generate_template('new_issue.txt', variables, html_escape=False)
-    mail = make_sendgrid_mail('', subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail('', subject, recipient_email, _FROM_ADDR, _FROM_NAME, text)
     # The user supplied a "valid" email address: set the reply-to header
     # If we set it for invalid strings, the server rejects the message
     if _is_valid_email(user_email_address) > 0:
@@ -298,7 +299,7 @@ def send_issue_reported(user_email_address, url, issue_type, description, issue_
     _send(mail)
 
 def send_device_verification(recipient_email, token, token_signature):
-    subject = 'Vault: Verify your account for a new device'
+    subject = 'Verify your account for a new device'
 
     args = {
         'user': recipient_email,
@@ -313,7 +314,7 @@ def send_device_verification(recipient_email, token, token_signature):
     }
     html = _generate_template('device_verification.html', variables, html_escape=True)
     text = _generate_template('device_verification.txt', variables, html_escape=False)
-    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, _FROM_NAME, text)
 
     if ok_to_send_email(recipient_email):
         _send(mail)
@@ -343,7 +344,7 @@ def generate_share_notification(sender_name, sender_email, recipient_name, recip
     text = _generate_template('share_notification.txt', params, html_escape=False)
     text = ''
 
-    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, text)
+    mail = make_sendgrid_mail(html, subject, recipient_email, _FROM_ADDR, _FROM_NAME, text)
 
     return mail
 
@@ -370,9 +371,11 @@ def send_sendgrid_template(template_name, template_params, subject, sender_name,
     personalization.add_to(Email(recipient_email))
     mail.add_personalization(personalization)
 
+    sender_name = None
     if sender_email is None:
         sender_email = _FROM_ADDR
-    mail.set_from(Email(sender_email))
+        sender_name = _FROM_NAME
+    mail.set_from(Email(email=sender_email, name=sender_name))
 
     if subject:
         mail.set_subject(subject)
